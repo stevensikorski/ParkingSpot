@@ -57,6 +57,11 @@ async def generate_frames(output):
 
             results = model(img)
             annotated_frame = results[0].plot()
+
+            censor_region = (100, 50, 200, 150)
+
+            x, y, w, h = censor_region
+            cv2.rectangle(annotated_frame, (x, y), (x + w, y + h), (0, 0, 0), -1)
             
             _, annotated_frame_jpeg = cv2.imencode('.jpg', annotated_frame)
 
