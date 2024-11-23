@@ -1,6 +1,8 @@
-venv
-__pycache__
-yolov8n_ncnn_model
+build/
+venv/
+__pycache__/
+yolov8n_ncnn_model/
+
 *.pt
 *.torchscript
 *.jpg

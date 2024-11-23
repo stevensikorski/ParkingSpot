@@ -1,4 +1,5 @@
 import io
+import asyncio
 
 from picamera2 import Picamera2
 from picamera2.encoders import MJPEGEncoder, Quality
@@ -58,7 +59,7 @@ async def generate_frames(output):
             results = model(img)
             annotated_frame = results[0].plot()
 
-            censor_region = (100, 50, 200, 150)
+            censor_region = (550, 125, 100, 100)
 
             x, y, w, h = censor_region
             cv2.rectangle(annotated_frame, (x, y), (x + w, y + h), (0, 0, 0), -1)
@@ -66,6 +67,7 @@ async def generate_frames(output):
             _, annotated_frame_jpeg = cv2.imencode('.jpg', annotated_frame)
 
             yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + annotated_frame_jpeg.tobytes() + b"\r\n")
+            await asyncio.sleep(5)
         except Exception as e:
             logging.error(f"Error in generate_frames: {str(e)}")
             break
@@ -76,7 +78,7 @@ async def generate_frames(output):
 @app.get("/mjpeg")
 async def mjpeg():
     picam2 = Picamera2()
-    video_config = picam2.create_video_configuration(main={"size": (1600, 900)})
+    video_config = picam2.create_video_configuration(main={"size": (1280, 1024)})
     picam2.configure(video_config)
     output = StreamingOutput()
     picam2.start_recording(MJPEGEncoder(), FileOutput(output), Quality.VERY_HIGH)
