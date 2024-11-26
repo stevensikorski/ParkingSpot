@@ -4,13 +4,12 @@ setup:
 	python3 -m venv --system-site-packages venv
 	@echo "Virtual environment created."
 
-install: setup
-	pip install -r requirements.txt
+install:
+	. venv/bin/activate && pip install -r requirements.txt
 	@echo "Dependencies installed."
 
 test:
-	. venv/bin/python3
-	deactivate
+	. venv/bin/activate && python3 -m unittest discover
 	@echo "All tests verified."
 
 clean:
@@ -22,18 +21,11 @@ clean:
 	@echo "Project files cleaned."
 
 model:
-	. venv/bin/activate
-	python3 src/convert.py
-	deactivate
+	. venv/bin/activate && python3 src/convert.py
 	@echo "Model conversion complete."
 
 run:
-	. venv/bin/activate
-	fastapi dev --host 0.0.0.0 src/main.py
-	deactivate
+	. venv/bin/activate && python3 -m fastapi dev --host 0.0.0.0 src/main.py
 	@echo "Application started."
 
-all:
-	make setup
-	make install
-	make model
+all: setup install model
