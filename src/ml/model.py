@@ -15,6 +15,8 @@ import numpy as np
 import cv2
 import asyncio
 import logging
+from src.app.spots import PARKING_SPOTS
+from src.app.censor import CENSOR_REGIONS
 
 async def generate_frames(output):
     model = YOLO("yolov8n_ncnn_model")
@@ -57,11 +59,28 @@ def enhance_image(img):
     return img
 
 def annotate_image(results, img):
+    overlay = img.copy()
+
+    for (x, y), (w, h) in PARKING_SPOTS:
+        cv2.rectangle(overlay, (x, y), (x + w, y + h), (255, 255, 255), -1)
+
+    alpha = 0.25
+    cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
+
+    for (x, y), (w, h) in PARKING_SPOTS:
+        cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), 2)
+    
     boxes = results[0].boxes
-    annotated_frame = results[0].plot()
-    for box in boxes.xyxy:
-        x1, y1, x2, y2 = box[:4]
-        center_x = (x1 + x2) / 2
-        center_y = (y1 + y2) / 2
-        cv2.circle(annotated_frame, (int(center_x), int(center_y)), 5, (0, 255, 0), -1)
-    return annotated_frame
+    class_names = results[0].names
+    for box in boxes:
+        cls = int(box.cls)
+        if class_names[cls] == "car":
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            center_x = (x1 + x2) // 2
+            center_y = (y1 + y2) // 2
+            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.circle(img, (center_x, center_y), 5, (0, 255, 0), -1)
+
+    for (x, y), (w, h) in CENSOR_REGIONS:
+        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 0), -1)
+    return img

@@ -17,3 +17,5 @@ python3 -m venv --system-site-packages venv
 pip install .
 python3 src/convert.py
 fastapi dev --host 0.0.0.0 src/main.py
+
+htop
