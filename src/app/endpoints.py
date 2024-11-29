@@ -11,26 +11,45 @@
 """
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi import BackgroundTasks
 from fastapi.responses import Response, StreamingResponse
 from starlette.background import BackgroundTask
 from src.camera.picam import get_image_data, start_stream
 from src.ml.model import generate_frames
+from src.app.spots import PARKING_SPOTS
+from src.ml.model import check_parking_spots
+from src.ml.model import track_parking
 
 app = FastAPI()
 
 @app.get("/image")
 def get_image():
-    data = get_image_data()
-    return Response(content=data, media_type="image/jpeg")
+  data = get_image_data()
+  return Response(content=data, media_type="image/jpeg")
 
 @app.get("/video")
 async def get_video():
-    picam2, output = start_stream()
-    def stop():
-        picam2.stop_recording()
-        picam2.close()
-    return StreamingResponse(
-        generate_frames(output),
-        media_type="multipart/x-mixed-replace; boundary=frame",
-        background=BackgroundTask(stop),
-    )
+  picam2, output = start_stream()
+  def stop():
+      picam2.stop_recording()
+      picam2.close()
+  return StreamingResponse(
+      generate_frames(output),
+      media_type="multipart/x-mixed-replace; boundary=frame",
+      background=BackgroundTask(stop),
+  )
+
+@app.get("/")
+async def get_json_data(output: BackgroundTasks):
+  picam2, output = start_stream()
+
+  def stop():
+      picam2.stop_recording()
+      picam2.close()
+
+  try:
+      async for data in track_parking(picam2, output):
+          return JSONResponse(content=data)
+  finally:
+      stop()
