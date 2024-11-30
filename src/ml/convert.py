@@ -6,11 +6,11 @@
   11/26/2024
 
   convert.py
-  File Description
+  Exports the YOLOv8 model to NCNN format for efficient operation on device.
 
 """
 
 from ultralytics import YOLO
 
 model = YOLO("yolov8n.pt")
-model.export(format="ncnn", save_dir="src/models")
+model.export(format="ncnn")

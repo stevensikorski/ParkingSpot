@@ -6,7 +6,7 @@
   11/26/2024
 
   main.py
-  File Description
+  Run ParkingSpot on a local server with endpoints.
 
 """
 

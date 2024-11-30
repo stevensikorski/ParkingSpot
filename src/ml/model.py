@@ -15,8 +15,7 @@ import numpy as np
 import cv2
 import asyncio
 import logging
-from src.app.spots import PARKING_SPOTS
-from src.app.censor import CENSOR_REGIONS
+from src.app.constants import PARKING_SPOTS, CENSOR_REGIONS
 
 async def generate_frames(output):
     model = YOLO("yolov8n_ncnn_model")
@@ -27,7 +26,7 @@ async def generate_frames(output):
             np_arr = np.frombuffer(jpeg_data, np.uint8)
             img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-            img = enhance_image(img)
+            # img = enhance_image(img)
 
             results = model(img)
             annotated_frame = annotate_image(results, img)
@@ -60,15 +59,20 @@ def enhance_image(img):
 
 def annotate_image(results, img):
     overlay = img.copy()
+    cars_in_spots = check_parking_spots(results, PARKING_SPOTS)
 
-    for (x, y), (w, h) in PARKING_SPOTS:
-        cv2.rectangle(overlay, (x, y), (x + w, y + h), (255, 255, 255), -1)
+    for idx, ((x, y), (w, h)) in enumerate(PARKING_SPOTS):
+        color = (0, 255, 0) if idx not in cars_in_spots else (0, 0, 255)
+        cv2.rectangle(overlay, (x, y), (x + w, y + h), color, -1)
+        cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
 
     alpha = 0.25
     cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
 
-    for (x, y), (w, h) in PARKING_SPOTS:
-        cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 255), 2)
+    # for (x, y), (w, h) in PARKING_SPOTS:
+    #     cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+    # img = results[0].plot()
     
     boxes = results[0].boxes
     class_names = results[0].names
@@ -78,12 +82,11 @@ def annotate_image(results, img):
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             center_x = (x1 + x2) // 2
             center_y = (y1 + y2) // 2
-            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.circle(img, (center_x, center_y), 5, (0, 255, 0), -1)
+            cv2.rectangle(img, (x1, y1), (x2, y2), (255, 255, 255), 2)
+            cv2.circle(img, (center_x, center_y), 5, (255, 255, 255), -1)
 
-    cars_in_spots = check_parking_spots(results, PARKING_SPOTS)
     print(f"Cars detected in spots: {len(cars_in_spots)}")
-    print(f"Available spots: {len(PARKING_SPOTS) - len(cars_in_spots)}")
+    print(f"Available spots: {max(0, len(PARKING_SPOTS) - len(cars_in_spots))}")
 
     for (x, y), (w, h) in CENSOR_REGIONS:
         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 0), -1)
@@ -122,12 +125,12 @@ async def track_parking(picam2, output):
             np_arr = np.frombuffer(jpeg_data, np.uint8)
             img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-            img = enhance_image(img)
+            # img = enhance_image(img)
 
             results = model(img)
 
             cars_in_spots = check_parking_spots(results, PARKING_SPOTS)
-            available_spaces = len(PARKING_SPOTS) - len(cars_in_spots)
+            available_spaces = max(0, len(PARKING_SPOTS) - len(cars_in_spots))
 
             yield {
                 "available_spaces": available_spaces,

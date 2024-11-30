@@ -17,7 +17,7 @@ clean:
 	rm -rf yolov8n.torchscript
 
 model:
-	. venv/bin/activate && python3 src/convert.py
+	. venv/bin/activate && python3 src/ml/convert.py
 
 run:
 	. venv/bin/activate && python3 -m fastapi dev --host 0.0.0.0 src/main.py
