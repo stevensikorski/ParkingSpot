@@ -32,24 +32,22 @@ def get_image():
 async def get_video():
   picam2, output = stream_video()
   def stop():
-      picam2.stop_recording()
-      picam2.close()
+    picam2.stop_recording()
+    picam2.close()
   return StreamingResponse(
-      generate_frames(output),
-      media_type="multipart/x-mixed-replace; boundary=frame",
-      background=BackgroundTask(stop),
+    generate_frames(output),
+    media_type="multipart/x-mixed-replace; boundary=frame",
+    background=BackgroundTask(stop),
   )
 
 @app.get("/")
 async def get_json_data(output: BackgroundTasks):
   picam2, output = stream_video()
-
   def stop():
-      picam2.stop_recording()
-      picam2.close()
-
+    picam2.stop_recording()
+    picam2.close()
   try:
-      async for data in track_parking(picam2, output):
-          return JSONResponse(content=data)
+    async for data in track_parking(picam2, output):
+      return JSONResponse(content=data)
   finally:
-      stop()
+    stop()

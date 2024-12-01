@@ -15,10 +15,13 @@ import numpy as np
 import cv2
 import asyncio
 import logging
-from src.app.constants import PARKING_SPOTS, CENSOR_REGIONS
+from src.app.constants import SETTINGS, PARKING_SPOTS, CENSOR_REGIONS
+
+spot_counters = {idx: 0 for idx in range(len(PARKING_SPOTS))}
 
 async def generate_frames(output):
     model = YOLO("yolov8n_ncnn_model")
+    logging.getLogger("ultralytics").setLevel(logging.WARNING)
     while True:
         try:
             jpeg_data = output.read()
@@ -26,51 +29,56 @@ async def generate_frames(output):
             np_arr = np.frombuffer(jpeg_data, np.uint8)
             img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-            # img = enhance_image(img)
-
             results = model(img)
             annotated_frame = annotate_image(results, img)
 
             _, annotated_frame_jpeg = cv2.imencode('.jpg', annotated_frame)
             yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" +
                    annotated_frame_jpeg.tobytes() + b"\r\n")
-            await asyncio.sleep(1)
+            await asyncio.sleep(SETTINGS["POLLING"])
 
         except Exception as e:
             logging.error(f"Error in generate_frames: {str(e)}")
             break
-
-def enhance_image(img):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    avg_brightness = np.mean(gray)
-    if avg_brightness < 50:
-        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        l = clahe.apply(l)
-        enhanced_lab = cv2.merge((l, a, b))
-        img = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
-        gamma = 1.5
-        gamma_correction = np.array(
-            [((i / 255.0) ** (1.0 / gamma)) * 255 for i in np.arange(0, 256)]
-        ).astype("uint8")
-        img = cv2.LUT(img, gamma_correction)
-    return img
 
 def annotate_image(results, img):
     overlay = img.copy()
     cars_in_spots = check_parking_spots(results, PARKING_SPOTS)
 
     for idx, ((x, y), (w, h)) in enumerate(PARKING_SPOTS):
-        color = (0, 255, 0) if idx not in cars_in_spots else (0, 0, 255)
+        is_occupied = idx in cars_in_spots
+
+        if not is_occupied:
+            spot_counters[idx] += 1
+        else:
+            spot_counters[idx] = 0 
+
+        if spot_counters[idx] == 60:
+          print(f"NOTIFY: Spot {idx + 1} is available.")
+
+        color = (0, 255, 0) if not is_occupied else (0, 0, 255)
         cv2.rectangle(overlay, (x, y), (x + w, y + h), color, -1)
         cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
 
+        spot_id_text = f"Spot {idx + 1}"
+        text_x = x + w // 2
+        text_y = y + h // 2
+        font_scale = 1
+        font_thickness = 3
+        text_size = cv2.getTextSize(spot_id_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)[0]
+
+        bg_color = color
+        bg_x1 = text_x - text_size[0] // 2 - 5
+        bg_y1 = text_y - text_size[1] // 2 - 5
+        bg_x2 = text_x + text_size[0] // 2 + 5
+        bg_y2 = text_y + text_size[1] // 2 + 5
+        cv2.rectangle(img, (bg_x1, bg_y1), (bg_x2, bg_y2), bg_color, -1)
+
+        text_color = (255, 255, 255)
+        cv2.putText(img, spot_id_text, (text_x - text_size[0] // 2, text_y + text_size[1] // 2), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, font_thickness)
+
     alpha = 0.25
     cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
-
-    # for (x, y), (w, h) in PARKING_SPOTS:
-    #     cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
     # img = results[0].plot()
     
@@ -87,6 +95,7 @@ def annotate_image(results, img):
 
     print(f"Cars detected in spots: {len(cars_in_spots)}")
     print(f"Available spots: {max(0, len(PARKING_SPOTS) - len(cars_in_spots))}")
+    print(spot_counters)
 
     for (x, y), (w, h) in CENSOR_REGIONS:
         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 0), -1)
@@ -124,8 +133,6 @@ async def track_parking(picam2, output):
 
             np_arr = np.frombuffer(jpeg_data, np.uint8)
             img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-            # img = enhance_image(img)
 
             results = model(img)
 
