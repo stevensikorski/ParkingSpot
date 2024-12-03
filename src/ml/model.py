@@ -16,6 +16,7 @@ import cv2
 import asyncio
 import logging
 from src.app.constants import SETTINGS, PARKING_SPOTS, CENSOR_REGIONS
+from src.camera.utils import enhance_low_light
 
 spot_counters = {idx: 0 for idx in range(len(PARKING_SPOTS))}
 
@@ -133,6 +134,8 @@ async def track_parking(picam2, output):
 
             np_arr = np.frombuffer(jpeg_data, np.uint8)
             img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+            img = enhance_low_light(img)
 
             results = model(img)
 
