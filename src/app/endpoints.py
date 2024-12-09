@@ -6,7 +6,7 @@
   11/26/2024
 
   endpoints.py
-  File Description
+  Endpoints for ParkingSpot API.
 
 """
 
