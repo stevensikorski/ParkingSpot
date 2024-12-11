@@ -16,8 +16,7 @@ import cv2
 import asyncio
 import logging
 from src.app.constants import SETTINGS, PARKING_SPOTS, CENSOR_REGIONS
-from camera.utils import enhance_image
-from src.app.utils import format_duration
+from src.app.utils import enhance_image, format_duration
 
 spot_counters = {idx: 0 for idx in range(len(PARKING_SPOTS))}
 
