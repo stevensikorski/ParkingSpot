@@ -16,31 +16,33 @@ import cv2
 import asyncio
 import logging
 from src.app.constants import SETTINGS, PARKING_SPOTS, CENSOR_REGIONS
-from src.camera.utils import enhance_low_light
+from camera.utils import enhance_image
 from src.app.utils import format_duration
 
 spot_counters = {idx: 0 for idx in range(len(PARKING_SPOTS))}
 
 async def generate_frames(output):
-    model = YOLO("yolov8n_ncnn_model")
-    logging.getLogger("ultralytics").setLevel(logging.WARNING)
-    while True:
-      try:
-        jpeg_data = output.read()
+  model = YOLO("yolov8n_ncnn_model")
+  logging.getLogger("ultralytics").setLevel(logging.WARNING)
+  while True:
+    try:
+      jpeg_data = output.read()
 
-        np_arr = np.frombuffer(jpeg_data, np.uint8)
-        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+      np_arr = np.frombuffer(jpeg_data, np.uint8)
+      img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        results = model(img)
-        annotated_frame = annotate_image(results, img)
+      img = enhance_image(img)
 
-        _, annotated_frame_jpeg = cv2.imencode('.jpg', annotated_frame)
-        yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + annotated_frame_jpeg.tobytes() + b"\r\n")
-        await asyncio.sleep(SETTINGS["POLLING"])
+      results = model(img)
+      annotated_frame = annotate_image(results, img)
 
-      except Exception as e:
-        logging.error(f"Error in generate_frames: {str(e)}")
-        break
+      _, annotated_frame_jpeg = cv2.imencode('.jpg', annotated_frame)
+      yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + annotated_frame_jpeg.tobytes() + b"\r\n")
+      await asyncio.sleep(SETTINGS["POLLING"])
+
+    except Exception as e:
+      logging.error(f"Error in generate_frames: {str(e)}")
+      break
 
 def annotate_image(results, img):
     overlay = img.copy()
@@ -54,7 +56,7 @@ def annotate_image(results, img):
       else:
         spot_counters[idx] = 0 
 
-      if spot_counters[idx] == SETTINGS["THRESHOLD"]:
+      if spot_counters[idx] == SETTINGS["TIME"]:
         print(f"NOTIFY: Spot {idx + 1} is available.")
 
       color = (0, 255, 0) if not is_occupied else (0, 0, 255)
@@ -127,60 +129,33 @@ def check_parking_spots(results, spots):
           parked_cars.append(idx)
           break
   return parked_cars
-
-async def track_parking(picam2, output):
-  model = YOLO("yolov8n_ncnn_model")
-  while True:
-    try:
-      jpeg_data = output.read()
-
-      np_arr = np.frombuffer(jpeg_data, np.uint8)
-      img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-      img = enhance_low_light(img)
-
-      results = model(img)
-
-      cars_in_spots = check_parking_spots(results, PARKING_SPOTS)
-      available_spaces = max(0, len(PARKING_SPOTS) - len(cars_in_spots))
-
-      yield {
-        "available_spaces": available_spaces,
-        "total_spots": len(PARKING_SPOTS)
-      }
-
-      await asyncio.sleep(SETTINGS["POLLING"])
-
-    except Exception as e:
-      logging.error(f"Error in track_parking: {str(e)}")
-      break
         
 def draw_parking_status(img, spot_counters):
-    x_offset = 32
-    y_offset = 32
-    font_scale = 1
-    font_thickness = 3
-    box_padding = 10
-    text_color = (255, 255, 255)
+  x_offset = 32
+  y_offset = 32
+  font_scale = 1
+  font_thickness = 3
+  box_padding = 10
+  text_color = (255, 255, 255)
 
-    for idx, counter in spot_counters.items():
-        is_available = counter >= SETTINGS["THRESHOLD"]
-        status_text = f"Spot {idx + 1}: {'Available' if is_available else 'Occupied'}"
+  for idx, counter in spot_counters.items():
+    is_available = counter >= SETTINGS["TIME"]
+    status_text = f"Spot {idx + 1}: {'Available' if is_available else 'Occupied'}"
 
-        if is_available:
-          duration_text = f" [{format_duration(counter)}]"
-          status_text += duration_text
+    if is_available:
+      duration_text = f" [{format_duration(counter)}]"
+      status_text += duration_text
 
-        bg_color = (0, 255, 0) if is_available else (0, 0, 255)
+    bg_color = (0, 255, 0) if is_available else (0, 0, 255)
 
-        text_size = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)[0]
+    text_size = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)[0]
 
-        bg_x1, bg_y1 = x_offset, y_offset
-        bg_x2, bg_y2 = bg_x1 + text_size[0] + 2 * box_padding, bg_y1 + text_size[1] + 2 * box_padding
-        cv2.rectangle(img, (bg_x1, bg_y1), (bg_x2, bg_y2), bg_color, -1)
+    bg_x1, bg_y1 = x_offset, y_offset
+    bg_x2, bg_y2 = bg_x1 + text_size[0] + 2 * box_padding, bg_y1 + text_size[1] + 2 * box_padding
+    cv2.rectangle(img, (bg_x1, bg_y1), (bg_x2, bg_y2), bg_color, -1)
 
-        text_x = bg_x1 + box_padding
-        text_y = bg_y1 + text_size[1] + box_padding
-        cv2.putText(img, status_text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, font_thickness)
+    text_x = bg_x1 + box_padding
+    text_y = bg_y1 + text_size[1] + box_padding
+    cv2.putText(img, status_text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, font_thickness)
 
-        y_offset += text_size[1] + 2 * box_padding
+    y_offset += text_size[1] + 2 * box_padding

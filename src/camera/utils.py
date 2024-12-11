@@ -12,20 +12,16 @@
 
 import cv2
 import numpy as np
+from src.app.constants import SETTINGS
 
-def enhance_low_light(img):
-  gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-  avg_brightness = np.mean(gray)
+def enhance_image(image):
+  gray_scale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+  mean_brightness = np.mean(gray_scale)
 
-  if avg_brightness < 50:
-    brightness_factor = 1.2
-    img = cv2.convertScaleAbs(img, alpha=brightness_factor, beta=20)
+  if mean_brightness > SETTINGS["THRESHOLD"]:
+    return image
 
-    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-    l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    l = clahe.apply(l)
-    enhanced_lab = cv2.merge((l, a, b))
-    img = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
-
-  return img
+  gamma_value = SETTINGS["GAMMA"]
+  inverse_gamma = 1.0 / gamma_value
+  corrected_image = np.power(image / 255.0, inverse_gamma) * 255
+  return corrected_image
