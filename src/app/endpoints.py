@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from starlette.background import BackgroundTask
 from src.camera.picam import stream_video
-from src.ml.model import generate_frames
+from src.ml.model import ParkingSpot
 
 app = FastAPI()
 
@@ -25,7 +25,7 @@ async def get_video():
     picam2.stop_recording()
     picam2.close()
   return StreamingResponse(
-    generate_frames(output),
+    ParkingSpot().generate_frames(output),
     media_type="multipart/x-mixed-replace; boundary=frame",
     background=BackgroundTask(stop),
   )

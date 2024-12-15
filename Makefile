@@ -6,9 +6,6 @@ setup:
 install:
 	. venv/bin/activate && pip install -r requirements.txt
 
-test:
-	. venv/bin/activate && python3 -m unittest discover
-
 clean:
 	rm -rf __pycache__ src/__pycache__ src/app/__pycache__ src/camera/__pycache__ src/ml/__pycache__
 	rm -rf venv

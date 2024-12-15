@@ -6,7 +6,7 @@
   11/26/2024
 
   utils.py
-  Utility functions used across the application.
+  Utility functions used in application.
 
 """
 
