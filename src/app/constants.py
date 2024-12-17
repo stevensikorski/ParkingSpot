@@ -13,7 +13,7 @@
 SETTINGS = {
   "RESOLUTION": (3840, 2160),
   "POLLING": 1,
-  "TIME": 30,
+  "TIME": 60,
   "GAMMA": 1.5,
   "THRESHOLD": 50,
   "SCALE": 1,

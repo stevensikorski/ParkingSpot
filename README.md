@@ -1,21 +1,44 @@
-# ParkingSpot
+## ParkingSpot
 
-ssh stevensikorski@raspberrypi.local
-python3 -m venv --system-site-packages venv
-source venv/bin/activate
-code ~/.gitignore_global
-git config --get core.excludesfile
+ParkingSpot is a parking spot detection project designed to help find available street parking near my home. With only street parking available, I oftentimes have to circle
+my neighborhood looking for a space. This project is a practical solution allowing me to park my car in an ideal spot as soon as its made available, making street parking more manageable and convenient.
 
-source venv/bin/activate
-fastapi dev --host 0.0.0.0 src/main.py
-deactivate
+### Hardware Requirements
 
-http://raspberrypi.local:8000/mjpeg
+* Raspberry Pi 5 (8GB)
+* Raspberry Pi M.2 HAT + HAILO AI Module (13 TOPS)
+* Raspberry Pi Camera Module 3 (12MP)
+* Additional components required for seamless integration
 
+### Environment Setup
 
-python3 -m venv --system-site-packages venv
-pip install .
-python3 src/convert.py
-fastapi dev --host 0.0.0.0 src/main.py
+Copy the environment file and fill in required keys.
+```
+cp .env.example .env
+```
 
-htop
+### Instructions
+
+```
+Compile:
+
+make clean
+make setup
+make all
+```
+
+```
+Execute:
+
+make run
+```
+
+### References
+
+Camlytics. "Parking Spot Detection AI - Camlytics Camera Software." YouTube, 26 Sep. 2021, https://www.youtube.com/watch?v=U3gn663fniQ.
+
+Ultralytics. YOLO Documentation. Ultralytics, https://docs.ultralytics.com.
+
+OpenCV. "OpenCV: Python Tutorials." OpenCV Documentation, OpenCV, https://docs.opencv.org/4.x/d6/d00/tutorial_py_root.html. 
+
+Pi-Cam. PiCourse, www.picourse.dev/pi-cam.

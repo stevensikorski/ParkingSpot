@@ -6,7 +6,7 @@
   11/26/2024
 
   endpoints.py
-  Endpoints for ParkingSpot API.
+  Endpoints for ParkingSpot.
 
 """
 
