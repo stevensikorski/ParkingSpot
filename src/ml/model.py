@@ -24,7 +24,6 @@ class ParkingSpot:
   def __init__(self):
     self.model = YOLO("yolov8n_ncnn_model")
     self.counter = {idx: 0 for idx in range(len(PARKING_SPOTS))}
-    logging.getLogger("ultralytics").setLevel(logging.WARNING)
 
   async def generate_frames(self, output):
     while True:

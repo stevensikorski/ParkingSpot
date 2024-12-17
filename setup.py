@@ -8,6 +8,8 @@ setup(
     "fastapi[standard]>=0.115.5",
     "numpy>=1.24.2",
     "opencv-python-headless>=4.10.0.84",
-    "ultralytics>=8.3.34"
+    "python-dotenv>=1.0.1"
+    "twilio>=9.4.1"
+    "ultralytics>=8.3.34",
   ]
 )
