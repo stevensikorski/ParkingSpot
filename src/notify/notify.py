@@ -26,7 +26,7 @@ class SMSNotifier:
 
   def send_notification(self, spot_id, duration):
     try:
-      text = f"Spot {spot_id + 1} is available for {duration}."
+      text = f"Spot {spot_id + 1} has become available."
       message = self.client.messages.create(
         body=text,
         from_=self.from_phone,
