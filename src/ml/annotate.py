@@ -19,11 +19,11 @@ from src.notify.notify import SMSNotifier
 def annotate_image(results, img, counter):
   cars_in_spots = check_parking_spots(results, PARKING_SPOTS)
 
-  # img = results[0].plot()
-  img = draw_parking_spots(img, cars_in_spots, counter)
-  img = draw_car_boxes(results, img)
   img = apply_censorship(img)
+  img = draw_parking_spots(img, cars_in_spots, counter)
   img = draw_parking_status(img, counter)
+  img = draw_car_boxes(results, img)
+  # img = results[0].plot()
 
   print(f"Cars detected in spots: {len(cars_in_spots)}")
   print(f"Available spots: {max(0, len(PARKING_SPOTS) - len(cars_in_spots))}")
@@ -107,9 +107,9 @@ def draw_parking_status(img, counter):
 def draw_text_with_background(img, text, x, y, color):
   text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, SETTINGS["SCALE"], SETTINGS["THICKNESS"])[0]
 
-  bg_x1 = x - text_size[0] // 2 - 5
-  bg_y1 = y - text_size[1] // 2 - 5
-  bg_x2 = x + text_size[0] // 2 + 5
-  bg_y2 = y + text_size[1] // 2 + 5
+  bg_x1 = x - text_size[0] // 2 - SETTINGS["PADDING"]
+  bg_y1 = y - text_size[1] // 2 - SETTINGS["PADDING"]
+  bg_x2 = x + text_size[0] // 2 + SETTINGS["PADDING"]
+  bg_y2 = y + text_size[1] // 2 + SETTINGS["PADDING"]
   cv2.rectangle(img, (bg_x1, bg_y1), (bg_x2, bg_y2), color, -1)
   cv2.putText(img, text, (x - text_size[0] // 2, y + text_size[1] // 2), cv2.FONT_HERSHEY_SIMPLEX, SETTINGS["SCALE"], SETTINGS["TEXT_COLOR"], SETTINGS["THICKNESS"])
